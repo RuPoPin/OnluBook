@@ -1,0 +1,290 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+h1 {
+    text-align: center;
+    color: #444;
+}
+
+a {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: #007bff;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.error {
+    color: red;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Стили для формы */
+form {
+    max-width: 600px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+p {
+    margin: 10px 0;
+    font-weight: bold;
+}
+
+.input_box {
+    margin-bottom: 15px;
+}
+
+.input_box input[type="text"],
+.input_box textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.input_box textarea {
+    resize: vertical;
+    height: 100px;
+}
+
+.input_box input[type="file"] {
+    padding: 5px;
+}
+
+.input_box input[type="radio"] {
+    margin-right: 10px;
+}
+
+button[type="submit"] {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button[type="submit"]:hover {
+    background-color: #218838;
+}
+
+/* Стили для радиокнопок */
+.input_box input[type="radio"] + label {
+    margin-right: 15px;
+    font-weight: normal;
+}
+
+h1 {
+    text-align: center;
+    color: #444;
+    margin-bottom: 30px;
+}
+
+a {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: #007bff;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Стили для таблицы */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 auto;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #007bff;
+    color: #fff;
+    font-weight: bold;
+}
+
+td {
+    color: #555;
+}
+
+tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Стили для кнопок "Изменить" и "Удалить" */
+td a {
+    color: #007bff;
+    text-decoration: none;
+    margin-right: 10px;
+}
+
+td a:hover {
+    text-decoration: underline;
+}
+
+td a[href*="delete"] {
+    color: #dc3545;
+}
+
+td a[href*="delete"]:hover {
+    color: #c82333;
+}
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4; /* Светлый фон для всей страницы */
+    color: #333; /* Основной цвет текста */
+    line-height: 1.6;
+}
+
+header {
+    background-color: #2c3e50; /* Темно-синий для хедера */
+    color: #ecf0f1; /* Светлый текст в хедере */
+    padding: 1.5rem 0;
+    text-align: center;
+    border-bottom: 4px solid #3498db; /* Синий акцент */
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2.2em;
+    font-weight: 300; /* Более легкий шрифт для заголовка */
+}
+
+nav {
+    background-color: #34495e; /* Чуть светлее хедера */
+    padding: 0.75rem 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.container { /* Можно обернуть весь контент кроме header и footer в div с этим классом для центрирования */
+    width: 80%;
+    max-width: 960px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+header {
+    background: #333;
+    color: #fff;
+    padding: 1rem 0;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2em;
+}
+
+nav {
+    margin-bottom: 20px;
+    padding: 0 20px; /* Добавим немного отступов, если контент внутри .container */
+}
+
+/* Стили меню, как в вашем примере, немного расширены */
+.admin-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0; /* Убираем дефолтный margin у ul */
+    text-align: center; /* Центрируем пункты меню, если nav занимает всю ширину */
+}
+
+.admin-menu li {
+    margin: 10px 0;
+    display: inline-block; /* Располагаем пункты в ряд, если нужно */
+    margin-right: 15px; /* Пробел между пунктами, если в ряд */
+}
+
+.admin-menu li:last-child {
+    margin-right: 0;
+}
+
+.admin-menu a {
+    text-decoration: none;
+    font-size: 1.1em; /* Немного уменьшил для лучшей читаемости при горизонтальном расположении */
+    color: #337ab7;
+    padding: 8px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    display: inline-block; /* Для применения padding и border */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.admin-menu a:hover,
+.admin-menu a:focus { /* Добавляем :focus для доступности */
+    text-decoration: none; /* Убираем подчеркивание, т.к. меняем фон */
+    background-color: #337ab7;
+    color: #fff;
+    border-color: #2e6da4;
+}
+
+main {
+    padding: 20px;
+    background-color: #fff; /* Если нет .container */
+    border-radius: 5px; /* Если нет .container */
+    /* min-height: 300px;  Можно добавить минимальную высоту для контентной части */
+}
+
+main p {
+    font-size: 1.1em;
+    color: #555;
+}
+
+.block1 {
+     text-align: center; 
+     margin-bottom: 30px; 
+     color: #2c3e50; 
+     font-size: 2em; }
+.insept-link { text-decoration: none; color: inherit; display: flex; }
+.insept { border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px; background-color: #fdfdfd; display: flex; flex-direction: column; width: 100%; transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+.insept:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+.insept .images { width: 100%; height: 200px; object-fit: contain; margin-bottom: 15px; border-radius: 5px; background-color: #f0f0f0; }
+.insept .no-image-placeholder { width: 100%; height: 200px; display: flex; align-items: center; justify-content: center; background-color: #eeeeee; color: #888888; margin-bottom: 15px; border-radius: 5px; text-align: center; font-size: 0.9em; }
+.insept .season { font-size: 0.85em; color: #555555; margin-bottom: 10px; }
+.insept .season .time, .insept .season .internet { margin-bottom: 5px; display: block; }
+.insept h3 { font-size: 1.25em; margin-top: 0; margin-bottom: 10px; color: #34495e; line-height: 1.3; }
+.insept .text { font-size: 0.95em; line-height: 1.6; color: #444444; flex-grow: 1; margin-bottom: 10px; }
+.no-promotions-message { text-align: center; font-size: 1.1em; color: #777; padding: 30px; }

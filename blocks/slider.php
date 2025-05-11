@@ -1,0 +1,9 @@
+<div class="all">
+                <div id="slider">
+                    <img class="side" src="Slider/four.png">
+                    <img class="side" src="Slider/One.png">
+                    <img class="side" src="Slider/two.png">
+                    <img class="side" src="Slider/three.png">
+                </div>
+                <script defer src="Slider/Script.js"></script>
+            </div>
