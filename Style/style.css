@@ -2403,7 +2403,7 @@ h1 {
 }
 
 .rating-stars-input {
-    display: inline-block;
+    display: inline-flex;
     direction: rtl;
     font-size: 2em;
     line-height: 1;

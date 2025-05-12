@@ -125,19 +125,18 @@
                 </div>
 
             <?php
-                // Используем правильные имена столбцов из таблицы `news`
-                // Сортируем по `id_n` DESC, чтобы получить последние новости
+
                 $selectNewsStmt = $connect->prepare("SELECT id_n, name_n, description_n, img_n FROM `news` ORDER BY id_n DESC LIMIT 5");
 
                 if ($selectNewsStmt === false) {
-                    // Обработка ошибки подготовки запроса новостей
+
                     error_log("Failed to prepare news query: " . $connect->error);
-                    $newsItems = []; // Устанавливаем $newsItems в пустой массив
+                    $newsItems = [];
                 } else {
                     $selectNewsStmt->execute();
                     $selectNewsResult = $selectNewsStmt->get_result();
-                    $newsItems = $selectNewsResult->fetch_all(MYSQLI_ASSOC); // Fetch as associative array
-                    $selectNewsStmt->close(); // Закрываем стейтмент
+                    $newsItems = $selectNewsResult->fetch_all(MYSQLI_ASSOC); 
+                    $selectNewsStmt->close(); 
                 }
             ?>
             <div class="news-slider-wrapper">
