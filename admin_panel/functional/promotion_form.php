@@ -16,8 +16,8 @@ if (file_exists($config_path)) {
     $db_host = 'localhost';
     $db_user = 'root';
     $db_pass = '';
-    $db_name = 'users'; // Убедитесь, что это правильное имя вашей БД
-    $mysqli = new mysqli($db_host, $db_user, $db_pass, $db_name);
+    $db_name = 'users'; // Убедитесь, что это правильное db_nameимя вашей БД
+    $mysqli = new mysqli($db_host, $db_user, $db_pass, $);
     if ($mysqli->connect_error) {
         die("Ошибка подключения к БД (fallback): " . $mysqli->connect_error);
     }
