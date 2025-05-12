@@ -1,25 +1,17 @@
 <?php
-session_start(); // Один раз в начале
+session_start();
 
-// --- Проверка доступа ---
-// Перенаправляем, если пользователь НЕ авторизован ИЛИ ЕГО УРОВЕНЬ ДОСТУПА НЕ 1
 if (!isset($_SESSION['user']) || ($_SESSION['user']['access'] ?? 0) != 1) {
-    header("Location: ../../../index.php"); // На три уровня вверх к index.php
+    header("Location: ../../../index.php");
     exit;
 }
 
-// --- Подключение к БД ---
-// Предполагается, что connect.php определяет переменную $connect
-require_once '../../../src/config/connect.php'; // На три уровня вверх к src/config/
+require_once '../../../src/config/connect.php';
 
-// --- Настройки ---
-// Путь для ЗАГРУЗКИ новых изображений ПОДБОРОК (относительно ЭТОГО скрипта)
 $upload_dir = '../../../images/more_book/';
-// Путь для ЗАПИСИ в БД и для URL изображений ПОДБОРОК (относительно КОРНЯ сайта)
 $db_image_path_prefix_collection = 'images/more_book/';
-// Путь для URL изображений ПРОДУКТОВ (относительно КОРНЯ сайта) - УТОЧНИТЕ ПРИ НЕОБХОДИМОСТИ
-$db_image_path_prefix_product = 'images/book/'; // <-- ПРОВЕРЬТЕ ПУТЬ К ИЗОБРАЖЕНИЯМ ПРОДУКТОВ
-$allowed_mime_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']; // Добавил webp
+$db_image_path_prefix_product = 'images/book/';
+$allowed_mime_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 $max_file_size = 10 * 1024 * 1024; // 10 MB
 
 $errors = [];
@@ -28,21 +20,18 @@ $title = '';
 $description = '';
 $link_url = '';
 $alt_text = '';
-$current_image_path = ''; // Хранит путь к текущему изображению из БД (относительно корня)
-$product_images = []; // Массив для хранения путей к изображениям продуктов
+$current_image_path = '';
+$product_images = [];
 
-// --- Обработка POST-запроса (сохранение изменений) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Получаем данные из формы
     $collection_id = isset($_POST['id']) ? (int)$_POST['id'] : null;
     $title = isset($_POST['title']) ? trim($_POST['title']) : '';
     $description = isset($_POST['description']) ? trim($_POST['description']) : '';
-    $link_url = isset($_POST['link_url']) && trim($_POST['link_url']) !== '' ? trim($_POST['link_url']) : null; // NULL если пусто
-    $alt_text = isset($_POST['alt_text']) && trim($_POST['alt_text']) !== '' ? trim($_POST['alt_text']) : null;  // NULL если пусто
-    $current_image_path = isset($_POST['current_image_path']) ? $_POST['current_image_path'] : ''; // Текущий путь из БД
-    $selected_existing_path = isset($_POST['existing_image_path']) ? trim($_POST['existing_image_path']) : ''; // Выбранный путь из продуктов
+    $link_url = isset($_POST['link_url']) && trim($_POST['link_url']) !== '' ? trim($_POST['link_url']) : null;
+    $alt_text = isset($_POST['alt_text']) && trim($_POST['alt_text']) !== '' ? trim($_POST['alt_text']) : null;
+    $current_image_path = isset($_POST['current_image_path']) ? $_POST['current_image_path'] : '';
+    $selected_existing_path = isset($_POST['existing_image_path']) ? trim($_POST['existing_image_path']) : '';
 
-    // Валидация базовых полей
     if (empty($title)) {
         $errors[] = "Название подборки обязательно для заполнения.";
     }
@@ -50,14 +39,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          $errors[] = "Неверный ID подборки.";
     }
 
-    $new_image_db_path = $current_image_path; // По умолчанию оставляем старое изображение
-    $old_image_to_delete_fs_path = null; // Путь к старому файлу на диске для удаления (только если загружен НОВЫЙ)
+    $new_image_db_path = $current_image_path;
+    $old_image_to_delete_fs_path = null;
 
-    // --- Обработка загрузки НОВОГО файла (Приоритет 1) ---
     if (isset($_FILES['new_image']) && $_FILES['new_image']['error'] === UPLOAD_ERR_OK) {
         $file_tmp_path = $_FILES['new_image']['tmp_name'];
         $file_size = $_FILES['new_image']['size'];
-        // Используем finfo для более надежного определения MIME
+
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $file_mime_type = finfo_file($finfo, $file_tmp_path);
         finfo_close($finfo);
@@ -65,66 +53,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $file_name_parts = explode('.', $_FILES['new_image']['name']);
         $file_extension = strtolower(end($file_name_parts));
 
-        // Валидация файла
         if ($file_size > $max_file_size) {
             $errors[] = "Ошибка: Файл слишком большой (максимум " . ($max_file_size / 1024 / 1024) . " МБ).";
         } elseif (!in_array($file_mime_type, $allowed_mime_types)) {
             $errors[] = "Ошибка: Недопустимый тип файла ($file_mime_type). Разрешены: " . implode(', ', $allowed_mime_types);
         } else {
-            // Генерация уникального имени файла
             $unique_filename = 'collection_' . uniqid('', true) . '.' . $file_extension;
-            // Полный путь на диске для сохранения НОВОГО файла
             $destination_path = $upload_dir . $unique_filename;
 
-            // Перемещение файла
             if (move_uploaded_file($file_tmp_path, $destination_path)) {
-                // Путь для сохранения в БД (относительный к КОРНЮ сайта)
                 $new_image_db_path = $db_image_path_prefix_collection . $unique_filename;
 
-                // Помечаем старый файл для удаления ТОЛЬКО ЕСЛИ он был
-                // и он отличается от нового пути
                 if (!empty($current_image_path) && $current_image_path !== $new_image_db_path) {
-                     // Полный путь к СТАРОМУ файлу на диске (относительно скрипта)
-                     $old_image_to_delete_fs_path = '../../../' . $current_image_path; // ТРИ уровня вверх!
+                     $old_image_to_delete_fs_path = '../../../' . $current_image_path;
                  }
             } else {
                 $errors[] = "Ошибка при загрузке файла на сервер. Проверьте права на запись в папку: " . realpath($upload_dir);
             }
         }
     } elseif (isset($_FILES['new_image']) && $_FILES['new_image']['error'] !== UPLOAD_ERR_NO_FILE) {
-        // Если была ошибка, но это не "файл не был загружен"
         $errors[] = "Произошла ошибка при загрузке файла. Код ошибки: " . $_FILES['new_image']['error'];
     }
-    // --- Обработка ВЫБОРА СУЩЕСТВУЮЩЕГО файла (Приоритет 2, если новый НЕ загружен) ---
-    // Сработает только если НОВЫЙ файл НЕ был успешно загружен ($old_image_to_delete_fs_path === null)
-    // и если был ВЫБРАН существующий путь, отличный от текущего
     elseif (empty($errors) && $old_image_to_delete_fs_path === null && !empty($selected_existing_path) && $selected_existing_path !== $current_image_path) {
-         // Используем выбранный путь из списка продуктов
-         // Путь ($selected_existing_path) уже в нужном формате для БД (относительно корня)
         $new_image_db_path = $selected_existing_path;
-        // В этом случае старый файл НЕ удаляем
     }
 
-    // --- Обновление данных в БД, если нет ошибок ---
     if (empty($errors)) {
 
-        // Удаляем старый файл с диска, ТОЛЬКО если был загружен НОВЫЙ
          if ($old_image_to_delete_fs_path !== null) {
-             // Проверяем существование перед удалением
              if (file_exists($old_image_to_delete_fs_path)) {
                  if (!unlink($old_image_to_delete_fs_path)) {
-                     // Логируем ошибку, но не останавливаем процесс
                      error_log("WARNING: Не удалось удалить старый файл: " . $old_image_to_delete_fs_path);
-                     $errors[] = "Предупреждение: Не удалось удалить старый файл изображения с сервера."; // Можно показать пользователю
+                     $errors[] = "Предупреждение: Не удалось удалить старый файл изображения с сервера.";
                  }
              } else {
-                 // Логируем, если файл для удаления не найден (может быть нормой, если путь в БД некорректный)
                   error_log("NOTICE: Старый файл для удаления не найден: " . $old_image_to_delete_fs_path);
              }
          }
 
-        // --- Обновление записи в БД ---
-        // NULL значения для URL и alt текста, если они пустые
         $link_url_for_db = empty($link_url) ? null : $link_url;
         $alt_text_for_db = empty($alt_text) ? null : $alt_text;
 
@@ -142,38 +108,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_bind_param($stmt, "sssssi",
                 $title,
                 $description,
-                $new_image_db_path, // Используем актуальный путь (новый, выбранный или старый)
-                $link_url_for_db,   // NULL если пусто
-                $alt_text_for_db,   // NULL если пусто
+                $new_image_db_path,
+                $link_url_for_db,
+                $alt_text_for_db,
                 $collection_id
             );
 
             if (mysqli_stmt_execute($stmt)) {
                 mysqli_stmt_close($stmt);
-                mysqli_close($connect); // Закрываем соединение перед редиректом
-                // Успешно обновлено, перенаправляем обратно на страницу управления
-                header("Location: ../manage_collections.php?status=updated&id=" . $collection_id); // Передаем ID для возможного сообщения
+                mysqli_close($connect);
+                header("Location: ../manage_collections.php?status=updated&id=" . $collection_id);
                 exit;
             } else {
                 $errors[] = "Ошибка при обновлении данных в БД: " . mysqli_stmt_error($stmt);
-                // Если обновление не удалось, но новый файл был перемещен/старый удален - это проблема.
-                // В идеале - транзакции или более сложная логика отката. Сейчас просто покажем ошибку.
             }
-            mysqli_stmt_close($stmt); // Закрываем стейтмент даже при ошибке execute
+            mysqli_stmt_close($stmt);
         } else {
             $errors[] = "Ошибка подготовки запроса к БД: " . mysqli_error($connect);
         }
     }
-    // Если были ошибки, скрипт дойдет до вывода HTML и покажет ошибки и форму с введенными данными
 
 } else {
-    // --- Обработка GET-запроса (загрузка данных для формы) ---
     if (!isset($_GET['id']) || !filter_var($_GET['id'], FILTER_VALIDATE_INT)) {
         die("Ошибка: Не указан или неверен ID подборки.");
     }
     $collection_id = (int)$_GET['id'];
 
-    // --- Получаем данные самой коллекции ---
     $sql_collection = "SELECT title, description, image_path, link_url, alt_text FROM collections WHERE id = ?";
     $stmt_collection = mysqli_prepare($connect, $sql_collection);
 
@@ -187,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($collection) {
             $title = $collection['title'];
             $description = $collection['description'];
-            $current_image_path = $collection['image_path']; // Текущий путь из БД (относительно корня)
+            $current_image_path = $collection['image_path'];
             $link_url = $collection['link_url'];
             $alt_text = $collection['alt_text'];
         } else {
@@ -197,24 +157,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          die("Ошибка подготовки запроса для получения данных коллекции: " . mysqli_error($connect));
     }
 
-    // --- Получаем список существующих изображений ПРОДУКТОВ ---
     $sql_images = "SELECT DISTINCT image FROM Product WHERE image IS NOT NULL AND image != '' ORDER BY image ASC";
     $result_images = mysqli_query($connect, $sql_images);
     if ($result_images) {
         while ($row_image = mysqli_fetch_assoc($result_images)) {
-            // Проверяем, существует ли файл физически (относительно скрипта)
-            $image_file_path_relative_to_script = '../../../' . $row_image['image']; // ТРИ уровня вверх!
+            $image_file_path_relative_to_script = '../../../' . $row_image['image'];
             if (!empty($row_image['image']) && file_exists($image_file_path_relative_to_script)) {
-                 // Сохраняем путь как он есть в БД (относительно корня сайта)
                 $product_images[] = $row_image['image'];
             }
         }
         mysqli_free_result($result_images);
     } else {
         error_log("Ошибка получения списка изображений продуктов: " . mysqli_error($connect));
-        // Не прерываем выполнение, просто список будет пустым
     }
-} // Конец обработки GET
+}
 
 ?>
 
@@ -224,30 +180,186 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Редактировать подборку</title>
-    <!-- Путь к CSS должен быть относительным HTML страницы, которая его подключает -->
-    <!-- Если edit_collection.php в admin_panel/functional/src/, а style.css в admin_panel/ -->
-    <link rel="stylesheet" href="../../style.css"> <!-- На два уровня вверх -->
+    <link rel="stylesheet" href="../../style.css">
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; }
-        .form-container { max-width: 700px; margin: 30px auto; padding: 25px; border: 1px solid #ddd; border-radius: 8px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #333; margin-bottom: 25px; }
-        .form-group { margin-bottom: 18px; }
-        label { display: block; margin-bottom: 6px; font-weight: bold; color: #555; }
-        input[type="text"],
-        textarea,
-        input[type="url"],
-        select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
-        textarea { min-height: 120px; resize: vertical; }
-        input[type="file"] { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        button[type="submit"] { display: inline-block; padding: 12px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease; }
-        button[type="submit"]:hover { background-color: #0056b3; }
-        .current-image img, #existing-image-preview img { max-width: 150px; height: auto; margin-top: 10px; display: block; border: 1px solid #eee; border-radius: 4px;}
-        .error-messages { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 4px; margin-bottom: 20px; }
-        .error-messages ul { margin: 0; padding-left: 20px; }
-        .back-link { display: inline-block; margin-bottom: 20px; color: #007bff; text-decoration: none; }
-        .back-link:hover { text-decoration: underline; }
-        small { color: #777; font-size: 0.9em; }
-    </style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+
+    body {
+        font-family: 'Nunito', sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+        color: #343a40;
+        line-height: 1.6;
+    }
+
+    .form-container {
+        max-width: 750px;
+        margin: 40px auto;
+        padding: 30px 40px;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e9ecef;
+    }
+
+    h1 {
+        text-align: center;
+        color: #376B44;
+        margin-bottom: 30px;
+        font-weight: 700;
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.95em;
+    }
+
+    input[type="text"],
+    textarea,
+    input[type="url"],
+    select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-size: 1em;
+        font-family: inherit;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    input[type="text"]:focus,
+    textarea:focus,
+    input[type="url"]:focus,
+    select:focus {
+        border-color: #6b9f79;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(55, 107, 68, 0.15);
+    }
+
+    textarea {
+        min-height: 140px;
+        resize: vertical;
+    }
+
+    input[type="file"] {
+        padding: 8px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        font-size: 0.95em;
+        cursor: pointer;
+    }
+     input[type="file"]::file-selector-button {
+        padding: 8px 12px;
+        margin-right: 10px;
+        background-color: #e9ecef;
+        color: #495057;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+     input[type="file"]::file-selector-button:hover {
+        background-color: #dee2e6;
+    }
+
+    button[type="submit"] {
+        display: inline-block;
+        padding: 12px 25px;
+        background-color: #376B44;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1.05em;
+        font-weight: 600;
+        transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+    button[type="submit"]:hover {
+        background-color: #2a5235;
+        transform: translateY(-1px);
+    }
+     button[type="submit"]:active {
+         transform: translateY(0);
+     }
+
+    .current-image img,
+    #existing-image-preview img {
+        max-width: 180px;
+        height: auto;
+        margin-top: 10px;
+        display: block;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        padding: 5px;
+    }
+
+    .error-messages {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        padding: 15px 20px;
+        border-radius: 6px;
+        margin-bottom: 25px;
+        font-size: 0.95em;
+    }
+    .error-messages strong {
+        font-weight: 700;
+    }
+    .error-messages ul {
+        margin: 10px 0 0 0;
+        padding-left: 20px;
+    }
+    .error-messages li {
+        margin-bottom: 5px;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 25px;
+        color: #376B44;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.2s ease;
+    }
+    .back-link:hover {
+        color: #2a5235;
+        text-decoration: underline;
+    }
+
+    small {
+        color: #6c757d;
+        font-size: 0.85em;
+        display: block;
+        margin-top: 5px;
+    }
+
+    hr {
+        margin: 30px 0;
+        border: none;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .success-message {
+        padding: 15px 20px;
+        margin-bottom: 25px;
+        background-color: #d1e7dd;
+        color: #0f5132;
+        border: 1px solid #badbcc;
+        border-radius: 6px;
+        font-size: 0.95em;
+        font-weight: 600;
+    }
+
+</style>
 </head>
 <body>
 
@@ -268,15 +380,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
 
     <?php if (isset($_GET['status']) && $_GET['status'] === 'updated'): ?>
-        <div style="padding: 10px; margin-bottom: 15px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px;">
+        <div class="success-message">
             Подборка успешно обновлена!
         </div>
     <?php endif; ?>
 
     <form action="edit_collection.php?id=<?php echo htmlspecialchars($collection_id); ?>" method="post" enctype="multipart/form-data">
-        <!-- Передаем ID через скрытое поле, хотя он и в URL -->
         <input type="hidden" name="id" value="<?php echo htmlspecialchars($collection_id); ?>">
-        <!-- Скрытое поле с текущим путем изображения (относительно корня) -->
         <input type="hidden" name="current_image_path" value="<?php echo htmlspecialchars($current_image_path); ?>">
 
         <div class="form-group">
@@ -302,12 +412,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="form-group">
             <label>Текущее изображение:</label>
             <?php
-            // Проверяем существование файла относительно СКРИПТА
             $current_image_fs_path = !empty($current_image_path) ? ('../../../' . $current_image_path) : '';
             if (!empty($current_image_path) && file_exists($current_image_fs_path)):
             ?>
                 <div class="current-image">
-                    <!-- Путь в src должен быть относительным КОРНЯ -->
                     <img src="../../../<?php echo htmlspecialchars($current_image_path); ?>" alt="<?php echo htmlspecialchars($alt_text ?: 'Текущее изображение'); ?>">
                     <p><small>Путь: <?php echo htmlspecialchars($current_image_path); ?></small></p>
                 </div>
@@ -318,7 +426,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
         </div>
 
-        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+        <hr>
 
         <div class="form-group">
             <label for="new_image">Загрузить НОВОЕ изображение (заменит текущее):</label>
@@ -333,13 +441,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      <option value="">-- Не выбирать существующее --</option>
                      <?php foreach ($product_images as $img_path): ?>
                          <option value="<?php echo htmlspecialchars($img_path); ?>" <?php echo ($img_path === $current_image_path) ? 'selected' : ''; ?>>
-                             <?php echo htmlspecialchars(basename($img_path)); // Показываем только имя файла ?>
+                             <?php echo htmlspecialchars(basename($img_path)); ?>
                          </option>
                      <?php endforeach; ?>
                  </select>
                  <div id="existing-image-preview" style="margin-top: 10px;">
                      <?php
-                     // Показываем превью, если текущее изображение есть в списке продуктов
                      $current_image_fs_path_preview = !empty($current_image_path) ? ('../../../' . $current_image_path) : '';
                      if (!empty($current_image_path) && in_array($current_image_path, $product_images) && file_exists($current_image_fs_path_preview)):
                      ?>
@@ -351,38 +458,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              <?php endif; ?>
          </div>
 
-        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+        <hr>
 
         <button type="submit">Сохранить изменения</button>
     </form>
 </div>
 
 <script>
-    // Простое превью при выборе из select
     const selectElement = document.getElementById('existing_image');
-    if (selectElement) { // Проверяем, что элемент существует
+    if (selectElement) {
         selectElement.addEventListener('change', function() {
             const previewContainer = document.getElementById('existing-image-preview');
-            const selectedPath = this.value; // Путь относительно корня (как в value)
-            previewContainer.innerHTML = ''; // Очищаем предыдущее
+            const selectedPath = this.value;
+            previewContainer.innerHTML = '';
 
             if (selectedPath) {
                 const img = document.createElement('img');
-                // Путь к изображению должен быть относительным КОРНЯ сайта для src
-                // Добавляем '../../../' чтобы получить путь от текущего HTML к корню
                 img.src = '../../../' + selectedPath;
                 img.alt = 'Предпросмотр выбранного изображения';
-                img.style.maxWidth = '150px';
+                img.style.maxWidth = '180px';
                 img.style.height = 'auto';
-                img.style.border = '1px solid #ddd';
-                img.style.borderRadius = '4px';
+                img.style.border = '1px solid #e9ecef';
+                img.style.borderRadius = '8px';
+                img.style.backgroundColor = '#f8f9fa';
+                img.style.padding = '5px';
                 img.onerror = function() {
-                    // Если картинка не загрузилась (не найдена)
                     previewContainer.innerHTML = '<small style="color:red;">Не удалось загрузить превью.</small>';
                 };
                 previewContainer.appendChild(img);
             }
         });
+         // Trigger change on load if an existing image is pre-selected
+         if (selectElement.value) {
+             selectElement.dispatchEvent(new Event('change'));
+         }
     }
 </script>
 
@@ -390,7 +499,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </html>
 
 <?php
-// Закрываем соединение, если оно еще открыто и существует
 if (isset($connect) && $connect) {
     mysqli_close($connect);
 }

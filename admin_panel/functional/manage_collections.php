@@ -2,19 +2,16 @@
 require_once '../../src/config/connect.php';
 session_start();
 if ((!$_SESSION['user']['access'] ?? '0') == "1") {
-    header("Location: ../index.php"); // или куда-то еще
+    header("Location: ../index.php");
     exit;
 }
-// Получаем все подборки из базы данных
 $sql = "SELECT id, title, description, image_path, alt_text FROM collections ORDER BY title ASC";
 $result = mysqli_query($connect, $sql);
 
-// Проверяем, был ли запрос успешным
 if (!$result) {
     die("Ошибка выполнения запроса: " . mysqli_error($connect));
 }
 
-// Сохраняем все подборки в массив (удобнее для проверки на пустоту)
 $collections = [];
 if (mysqli_num_rows($result) > 0) {
     while($row = mysqli_fetch_assoc($result)) {
@@ -22,7 +19,6 @@ if (mysqli_num_rows($result) > 0) {
     }
 }
 
-// Освобождаем память от результата запроса (если он был)
 if ($result) {
     mysqli_free_result($result);
 }
@@ -35,92 +31,97 @@ if ($result) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Управление подборками</title>
-    <link rel="stylesheet" href="style.css"> <!-- Подключаем стили -->
+    <link rel="stylesheet" href="style.css?<? echo time()?>"> 
     <style>
-        /* Дополнительные стили для таблицы (можно вынести в style.css) */
         body {
             font-family: sans-serif;
             margin: 20px;
         }
-        h1 {
-            text-align: center;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-            vertical-align: middle; /* Выравнивание по вертикали */
-        }
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        tr:hover {
-            background-color: #f1f1f1;
-        }
-        img {
-            max-width: 100px;
-            height: auto;
-            display: block; /* Убирает лишний отступ под картинкой */
-        }
-        .actions a {
-            display: inline-block; /* Чтобы margin работал */
-            margin-right: 10px;
-            margin-bottom: 5px; /* Отступ снизу для переноса строк */
-            text-decoration: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-        }
-        .actions a.edit {
-             background-color: #ffc107;
-             color: #333;
-        }
-        .actions a.edit:hover {
-            background-color: #e0a800;
-        }
-        .actions a.delete {
-            background-color: #dc3545;
-            color: white;
-        }
-         .actions a.delete:hover {
-             background-color: #c82333;
-         }
-         .add-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            padding: 10px 15px;
-            background-color: #28a745;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        .add-link:hover {
-            background-color: #218838;
-        }
-        .no-collections {
-            padding: 15px;
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-            border-radius: 4px;
-            margin-top: 20px;
-        }
+         h1 {
+        text-align: center;
+        color: #376B44; 
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        border: 1px solid #a8c0af; 
+    }
+    th, td {
+        border: 1px solid #d8e2dc; 
+        padding: 10px;
+        text-align: left;
+        vertical-align: middle;
+    }
+    th {
+        background-color: #cddad4;
+        font-weight: bold;
+        color: #2a5235; 
+    }
+    tr:nth-child(even) {
+        background-color: #f4f7f5;
+    }
+    tr:hover {
+        background-color: #e1eae5;
+    }
+    img {
+        max-width: 100px;
+        height: auto;
+        display: block;
+        border-radius: 3px;
+    }
+    .actions a {
+        display: inline-block;
+        margin-right: 10px;
+        margin-bottom: 5px;
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        color: white;
+        transition: background-color 0.2s ease;
+    }
+    .actions a.edit {
+        background-color: #5a9e6b;
+    }
+    .actions a.edit:hover {
+        background-color: #4a8359; 
+    }
+    .actions a.delete {
+        background-color: #dc3545;
+        color: white;
+    }
+     .actions a.delete:hover {
+         background-color: #c82333;
+     }
+     .add-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        padding: 10px 15px;
+        background-color: #376B44;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 16px;
+        transition: background-color 0.2s ease;
+    }
+    .add-link:hover {
+        background-color: #2a5235;
+    }
+    .no-collections {
+        padding: 15px;
+        background-color: #e1f0e6; 
+        border: 1px solid #c3e0cc;
+        color: #2a5235;
+        border-radius: 4px;
+        margin-top: 20px;
+    }
     </style>
 </head>
 <body>
 
 <h1>Управление подборками</h1>
 
-<a href="add_collection.php" class="add-link">Добавить новую подборку</a>
+<a href="src/add_collection.php" class="add-link">Добавить новую подборку</a>
 
 <?php if (empty($collections)): ?>
     <p class="no-collections">Подборок пока нет.</p>
@@ -159,10 +160,9 @@ if ($result) {
                     </td>
                     <td class="actions">
                         <a href="src/edit_collection.php?id=<?php echo $collection['id']; ?>" class="edit">Редактировать</a>
-                        <a href="delete_collection.php?id=<?php echo $collection['id']; ?>"
+                        <a href="src/delete_collection.php?id=<?php echo $collection['id']; ?>"
                            class="delete"
                            onclick="return confirm('Вы уверены, что хотите удалить подборку \'<?php echo htmlspecialchars(addslashes($collection['title'])); ?>\'?');">Удалить</a>
-                           <!-- addslashes нужен внутри JS confirm для корректной обработки кавычек в названии -->
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -174,6 +174,5 @@ if ($result) {
 </html>
 
 <?php
-// Закрываем соединение с базой данных
 mysqli_close($connect);
 ?>

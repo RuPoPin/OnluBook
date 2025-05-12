@@ -46,7 +46,7 @@
 
         .block1 {
             text-align: center;
-            font-size: 2.3em; /* Немного уменьшим главный заголовок */
+            font-size: 2.3em; 
             margin-bottom: 25px;
             color: #2c3e50;
             font-weight: 700;
